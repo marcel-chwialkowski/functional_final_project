@@ -144,6 +144,20 @@ go_down (Hole,t)    = Nothing            -- (root => no parent)
 -- and BinZip's to Tree String's, which also relies on interpreting a
 -- BinCxt as a function Tree String -> Tree String.
 
+--utility function
+enemFriendNumbersFstExcluded :: LabBin Int -> (Int, Int)
+enemFriendNumbersFstExcluded (Ll l) = (0, 0)
+enemFriendNumbersFstExcluded (Bl l t1 t2) = let left = enemFriendNumbers t1 in let right = enemFriendNumbers t2 in 
+    (fst left + fst right, snd left + snd right)
+
+enemFriendNumbers :: LabBin Int -> (Int, Int)
+enemFriendNumbers (Ll l) = case l of
+    1 -> (0, 1)
+    2 -> (1, 0)
+    0 -> (0, 0)
+enemFriendNumbers (Bl l t1 t2) = let curr = enemFriendNumbers (Ll l) in let left = enemFriendNumbers t1 in let right = enemFriendNumbers t2 in
+    (fst curr + fst left + fst right, snd curr + snd left + snd right)
+
 treeFromBin :: Show a => LabBin a -> Tree String
 treeFromBin (Ll x)     = Node (show x) []
 treeFromBin (Bl x t1 t2) = Node (show x) [treeFromBin t1,treeFromBin t2]
