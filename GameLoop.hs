@@ -42,10 +42,10 @@ repl = do
     
     putStrLn "You are entering the tree... \nGood Luck!"
 
-    --define some variables for start
     let enemiesNumber = (countNodes gametreeLabelled) `div` 3
     let friendsNumber = enemiesNumber
 
+    --zipper to move around the tree
     let zip = (Hole, gametreeLabelled)
     go zip enemiesNumber friendsNumber 0
 
