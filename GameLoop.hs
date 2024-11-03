@@ -33,17 +33,18 @@ endGame turns friends = do
 
 repl :: IO ()
 repl = do
-    putStrLn "Welcome"
+    putStrLn "Welcome!" -- add "do you know how to play? yes -> continue, no -> provide information"
     putStrLn "Choose maximum tree depth. Between 3 and 6 recommended for a fun game :).\n"
 
     input <- getLine
     let treeDepth = read input
     gametreeLabelled <- gameSetup treeDepth
     
-    putStrLn "You are entering the tree... \nGood Luck!"
+    putStrLn "You are entering the tree and on team 1. You can move through the tree in the following ways:\n \"go down\" to go down one step towards the root\n \"go right\" to go one step up the right branch\n \"go left\" to go one step up the left branch\n \"kill\" to kill whoever is at the current node\n \"cut off\" to cut off part of the tree extending from that branch\nAll of these commands count as moves, so try to minimize them. Kill all your enemies (team 2) with the least amount of moves possible... \nGood Luck!"
 
     let enemiesNumber = (countNodes gametreeLabelled) `div` 3
     let friendsNumber = enemiesNumber
+    let friendsKilled = 0 -- use to keep track of friends killed, that'll then be used in score calculation
 
     --zipper to move around the tree
     let zip = (Hole, gametreeLabelled)
