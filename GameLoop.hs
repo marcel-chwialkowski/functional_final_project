@@ -14,7 +14,8 @@ data GameState = GameState
    enRem :: Int,
    frRem :: Int,
    turn :: Int,
-   die :: Bool}
+   hp :: Int,
+   vision :: Int}
 
 type Game = StateT GameState IO
 
@@ -32,10 +33,14 @@ gameSetup treeDepth = do
     return gametreeLabelled
 
 --for now the score is proportional to friends remaining but that shouldnt be the case - it should be inversely prop to friends killed
-endGame :: Int -> Int -> IO ()
-endGame turns friends = do
-  let score = fromIntegral friends / fromIntegral turns
-  putStrLn ("Well played! You finished the game with a score of " ++ (show score))
+endGame :: GameState -> IO ()
+endGame g = do
+  if (enRem g) /= 0
+    then 
+      putStrLn ("You lost!")
+  else do
+    let score = fromIntegral (frRem g) / fromIntegral (turn g)
+    putStrLn ("Well played! You finished the game with a score of " ++ (show score))
   putStrLn ("Type yes if you want to play again!")
   line <- getLine
   case parseInput parseCmd line of 
@@ -60,7 +65,7 @@ repl = do
 
     --binzipper to move around the tree
     let binzip = (Hole, gametreeLabelled)
-    let startState = GameState {binzip = binzip, enRem = enemiesNumber, frRem = friendsNumber, turn = 0, die = False}
+    let startState = GameState {binzip = binzip, enRem = enemiesNumber, frRem = friendsNumber, turn = 0, hp = 10, vision = 1}
 
     evalStateT go startState
     where 
@@ -68,23 +73,23 @@ repl = do
     go = do
       gameState <- get
       if enRem gameState == 0 
-        then liftIO $ endGame (frRem gameState) (turn gameState)
-      else if die gameState == True
+        then liftIO $ endGame gameState
+      else if hp gameState == 0
         then do 
-          liftIO $ putStr ("You stayed close to an enemy too long. He kills you")
-          liftIO $ endGame (frRem gameState) (turn gameState)
+          liftIO $ putStr ("You stayed close to an enemy too long. He kills you.\n")
+          liftIO $ endGame gameState
       else
           do
           --print turn information at the beginning
           liftIO $ putStr ("--- Turn " ++ (show ((turn gameState)+1)) ++ " ---\n")
           liftIO $ putStr (drawBinZip (binzip gameState))
+          let bz = binzip gameState
           
           --get player input
           line <- liftIO getLine
 
           -- as we always increment the turn, maybe we can do it here outside pattern matching
           modify (\s -> s {turn = (turn s) + 1})
-          let bz = binzip gameState
 
           case parseInput parseCmd line of
               Nothing -> do
@@ -159,8 +164,13 @@ repl = do
                       modify (\s -> s {binzip = newZip, enRem = enRem s - 1})
                       go
               
-              Just Cut_Off ->
+              Just Cut_Off -> do
                 --we also dont need the context here, we are not moving
+                --check if hp has to be updated first
+                case snd bz of 
+                  Ll 2 -> do modify (\s -> s {hp = hp gameState - 1})
+                  Bl 2 t1 t2 -> do modify (\s -> s {hp = hp gameState - 1})
+
                 case snd bz of
                   Ll l -> do
                     liftIO $ putStrLn "No branches to cut here!"
@@ -171,8 +181,23 @@ repl = do
                     liftIO $ putStrLn "Branch cut off!"
                     liftIO $ putStrLn ("Killed " ++ (show (fst upd)) ++ " enemies")
                     liftIO $ putStrLn ("and " ++ (show (snd upd)) ++ " friends")
-                    put GameState {binzip = newZip, enRem = enRem gameState - fst upd, frRem = frRem gameState - snd upd, turn = turn gameState, die = die gameState}
+                    modify (\s -> s {binzip = newZip, enRem = enRem s - fst upd, frRem = frRem s - snd upd})
                     go
+
+              --do some edge cases here, not super important
+              Just Meditate -> do
+                  liftIO $ putStrLn "You rest."
+                  case snd bz of 
+                    Ll 2 -> do modify (\s -> s {hp = hp gameState - 1})
+                    Bl 2 t1 t2 -> do modify (\s -> s {hp = hp gameState - 1})
+                    Ll 1 -> do 
+                      liftIO $ putStrLn "A friend is nearby. Your vision increases."
+                      modify (\s -> s {vision = vision gameState + 1})
+                    Bl 1 t1 t2 -> do
+                      liftIO $ putStrLn "A friend is nearby. Your vision increases."
+                      modify (\s -> s {vision = vision gameState + 1})
+                    _ -> return ()
+                  go
               Just Quit ->
                 do return ()
 
