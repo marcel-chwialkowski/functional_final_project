@@ -2,6 +2,8 @@ import Treestuff
 import Parser
 import Cmd
 
+-- add vision mod: player can only see nearest neighbors every turn, can see till the end of a branch if they encounter a friend 
+
 import System.IO
 import Control.Concurrent (threadDelay)
 
