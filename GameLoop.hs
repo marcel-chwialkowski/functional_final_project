@@ -9,7 +9,6 @@ import Control.Monad.Trans.State (StateT, evalStateT, execStateT, runStateT, get
 import Control.Monad.State (StateT, lift)
 import Control.Monad.IO.Class (liftIO)
 
-
 data GameState = GameState
   {binzip :: BinZip Int,
    enZips :: [BinZip Int],
@@ -17,7 +16,8 @@ data GameState = GameState
    enRem :: Int,
    frRem :: Int,
    turn :: Int,
-   die :: Bool,
+   hp :: Int,
+   vision :: Int,
    freeze :: Bool}
 
 type Game = StateT GameState IO
@@ -66,7 +66,7 @@ repl = do
 
     --binzipper to move around the tree
     let binzip = (Hole, gametreeLabelled)
-    let startState = GameState {binzip = binzip, enZips = enemyZippers, frZips = friendZippers, enRem = enemiesNumber, frRem = friendsNumber, turn = 0, die = False, freeze = True}
+    let startState = GameState {binzip = binzip, enZips = enemyZippers, frZips = friendZippers, enRem = enemiesNumber, frRem = friendsNumber, turn = 0, hp = 5, vision = 1, freeze = True}
 
     putStrLn "You are entering the tree... \nGood Luck!"
 
@@ -77,7 +77,7 @@ repl = do
       gameState <- get
       if enRem gameState == 0 
         then liftIO $ endGame (frRem gameState) (turn gameState)
-      else if die gameState == True
+      else if hp gameState <= 0
         then do 
           liftIO $ putStr ("You stayed close to an enemy too long. He kills you")
           liftIO $ endGame (frRem gameState) (turn gameState)
@@ -179,8 +179,13 @@ repl = do
                       modify (\s -> s {binzip = newZip, enZips = newEnZips, frZips = newFrZips, enRem = enRem s - 1})
                       go
               
-              Just Cut_Off ->
+              Just Cut_Off -> do
                 --we also dont need the context here, we are not moving
+                --check if hp has to be updated first
+                case snd bz of 
+                  Ll (f, e) -> do modify (\s -> s {hp = hp gameState - length e})
+                  Bl (f, e) t1 t2 -> do modify (\s -> s {hp = hp gameState - length e})
+
                 case snd bz of
                   Ll l -> do
                     liftIO $ putStrLn "No branches to cut here!"
@@ -195,9 +200,27 @@ repl = do
                     liftIO $ putStrLn "Branch cut off!"
                     liftIO $ putStrLn ("Killed " ++ (show (fst upd)) ++ " enemies")
                     liftIO $ putStrLn ("and " ++ (show (snd upd)) ++ " friends")
-
-                    put GameState {binzip = newZip, enZips = newEnZips, frZips = newFrZips, enRem = enRem gameState - fst upd, frRem = frRem gameState - snd upd, turn = turn gameState, die = die gameState, freeze = freeze gameState}
+                    modify (\s -> s {binzip = newZip, enZips = newEnZips, frZips = newFrZips, enRem = enRem gameState - fst upd, frRem = frRem gameState - snd upd})
                     go
+
+             --do some edge cases here, not super important
+              Just Meditate -> do
+                  liftIO $ putStrLn "You rest."
+                  case snd bz of 
+                    Ll (f, e) -> do modify (\s -> s {hp = hp gameState - length e})
+                    Bl (f, e) t1 t2 -> do modify (\s -> s {hp = hp gameState - length e})
+                  case snd bz of
+                    Ll (f, e) -> case length f of 
+                      0 -> return ()
+                      otherwise -> do
+                        liftIO $ putStrLn "A friend is nearby. Your vision increases."
+                        modify (\s -> s {vision = vision gameState + 1})
+                    Bl (f, e) t1 t2 -> case length f of
+                      0 -> return ()
+                      otherwise -> do 
+                        liftIO $ putStrLn "A friend is nearby. Your vision increases."
+                        modify (\s -> s {vision = vision gameState + 1})
+                  go
               Just Quit ->
                 do return ()
 
