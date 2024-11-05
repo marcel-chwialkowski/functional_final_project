@@ -6,15 +6,19 @@ import System.IO
 import Control.Concurrent (threadDelay)
 
 import Control.Monad.Trans.State (StateT, evalStateT, execStateT, runStateT, get, put, modify)
+import Control.Monad.State (StateT, lift)
 import Control.Monad.IO.Class (liftIO)
 
 
 data GameState = GameState
   {binzip :: BinZip Int,
+   enZips :: [BinZip Int],
+   frZips :: [BinZip Int],
    enRem :: Int,
    frRem :: Int,
    turn :: Int,
-   die :: Bool}
+   die :: Bool,
+   freeze :: Bool}
 
 type Game = StateT GameState IO
 
@@ -53,14 +57,18 @@ repl = do
     let treeDepth = read input
     gametreeLabelled <- gameSetup treeDepth
     
-    putStrLn "You are entering the tree... \nGood Luck!"
-
     let enemiesNumber = (countNodes gametreeLabelled) `div` 3
     let friendsNumber = enemiesNumber
 
+    --here we shoudl traverse the tree to define the lists
+    let enemyZippers = createEnemyZippers gametreeLabelled
+    let friendZippers = createFriendZippers gametreeLabelled
+
     --binzipper to move around the tree
     let binzip = (Hole, gametreeLabelled)
-    let startState = GameState {binzip = binzip, enRem = enemiesNumber, frRem = friendsNumber, turn = 0, die = False}
+    let startState = GameState {binzip = binzip, enZips = enemyZippers, frZips = friendZippers, enRem = enemiesNumber, frRem = friendsNumber, turn = 0, die = False, freeze = True}
+
+    putStrLn "You are entering the tree... \nGood Luck!"
 
     evalStateT go startState
     where 
@@ -75,16 +83,29 @@ repl = do
           liftIO $ endGame (frRem gameState) (turn gameState)
       else
           do
+          
+          -- movement of enemies
+          let bzpre = binzip gameState
+          if freeze gameState == False then do
+            friendsMove <- lift (moveGroup (frZips gameState) (enZips gameState) bzpre 1 (frRem gameState))
+            enemiesMove <- lift (moveGroup (second friendsMove) (first friendsMove) (third friendsMove) 2 (enRem gameState))
+            modify (\s -> s {binzip = (third enemiesMove), enZips = (first enemiesMove), frZips = (second enemiesMove)})
+          else do
+            modify (\s -> s {freeze = False})
+
+          gameState <- get
+          
+          let bz = binzip gameState
+
           --print turn information at the beginning
           liftIO $ putStr ("--- Turn " ++ (show ((turn gameState)+1)) ++ " ---\n")
-          liftIO $ putStr (drawBinZip (binzip gameState))
+          liftIO $ putStr (drawBinZipPretty (binzip gameState))
           
           --get player input
           line <- liftIO getLine
 
           -- as we always increment the turn, maybe we can do it here outside pattern matching
           modify (\s -> s {turn = (turn s) + 1})
-          let bz = binzip gameState
 
           case parseInput parseCmd line of
               Nothing -> do
@@ -127,36 +148,35 @@ repl = do
                     liftIO $ putStrLn "You cannot climb down any further."
                     go
 
-              --we dont even need to 
               Just Kill ->
                 case snd bz of 
-                  Bl l t1 t2 -> case l of
+                  Bl (f, e) t1 t2 -> case length e of
+                    0 -> do 
+                      liftIO $ putStrLn "But there are no enemies here?"
+                      go
+                    otherwise -> do 
+                      liftIO $ putStrLn "Killed an enemy!"
+                      let newEnZipsP = killZipper bz (enZips gameState)
+                      let newZip  = (fst bz, Bl (f, tail e) t1 t2)
+                      let newTree = plug (fst newZip) (snd newZip)
+                      let newEnZips = adjustAllLabelings newTree newEnZipsP
+                      let newFrZips = adjustAllLabelings newTree (frZips gameState)
+
+                      modify (\s -> s {binzip = newZip, enZips = newEnZips, frZips = newFrZips, enRem = enRem s - 1})
+                      go
+                  Ll (f, e) -> case length e of
                     0 -> do 
                       liftIO $ putStrLn "But there is no-one here?"
                       go
-                    1 -> do 
-                      liftIO $ putStrLn "Killed a friend! Why would you do that?"
-                      let newZip = (fst bz, Bl 0 t1 t2)
-                      modify (\s -> s {binzip = newZip, frRem = frRem s - 1})
-                      go 
-                    2 -> do
+                    otherwise -> do 
                       liftIO $ putStrLn "Killed an enemy!"
-                      let newZip  = (fst bz, Bl 0 t1 t2)
-                      modify (\s -> s {binzip = newZip, enRem = enRem s - 1})
-                      go
-                  Ll l -> case l of
-                    0 -> do 
-                      liftIO $ putStrLn "But there is no-one here?"
-                      go
-                    1 -> do 
-                      liftIO $ putStrLn "Killed a friend! Why would you do that?"
-                      let newZip = (fst bz, Ll 0)
-                      modify (\s -> s {binzip = newZip, frRem = frRem s - 1})
-                      go
-                    2 -> do
-                      liftIO $ putStrLn "Killed an enemy!"
-                      let newZip = (fst bz, Ll 0)
-                      modify (\s -> s {binzip = newZip, enRem = enRem s - 1})
+                      let newEnZipsP = killZipper bz (enZips gameState)
+                      let newZip  = (fst bz, Ll (f, tail e))
+                      let newTree = plug (fst newZip) (snd newZip)
+                      let newEnZips = adjustAllLabelings newTree newEnZipsP
+                      let newFrZips = adjustAllLabelings newTree (frZips gameState)
+
+                      modify (\s -> s {binzip = newZip, enZips = newEnZips, frZips = newFrZips, enRem = enRem s - 1})
                       go
               
               Just Cut_Off ->
@@ -168,10 +188,15 @@ repl = do
                   Bl l t1 t2 -> do
                     let upd = enemFriendNumbersFstExcluded (snd bz)
                     let newZip = (fst bz, Ll l)
+                    let newTree = plug (fst newZip) (snd newZip)
+                    let newFrZips = adjustAllLabelingsRobust newTree (frZips gameState)
+                    let newEnZips = adjustAllLabelingsRobust newTree (enZips gameState)
+
                     liftIO $ putStrLn "Branch cut off!"
                     liftIO $ putStrLn ("Killed " ++ (show (fst upd)) ++ " enemies")
                     liftIO $ putStrLn ("and " ++ (show (snd upd)) ++ " friends")
-                    put GameState {binzip = newZip, enRem = enRem gameState - fst upd, frRem = frRem gameState - snd upd, turn = turn gameState, die = die gameState}
+
+                    put GameState {binzip = newZip, enZips = newEnZips, frZips = newFrZips, enRem = enRem gameState - fst upd, frRem = frRem gameState - snd upd, turn = turn gameState, die = die gameState, freeze = freeze gameState}
                     go
               Just Quit ->
                 do return ()
