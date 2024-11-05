@@ -118,10 +118,7 @@ parseClimb = do
 parseMeditate :: Parser String Cmd
 parseMeditate = do
   match "meditate"
-  match "for"
-  n <- number
-  if n == 1 then match "second" else match "seconds"
-  return (Meditate n)
+  return Meditate
 
 parseKill :: Parser String Cmd
 parseKill = do
