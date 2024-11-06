@@ -15,6 +15,7 @@ data GameState = GameState
    frZips :: [BinZip Int],
    enRem :: Int,
    frRem :: Int,
+   frKill :: Int,
    turn :: Int,
    hp :: Int,
    vision :: Int,
@@ -69,7 +70,6 @@ repl = do
 
     let enemiesNumber = (countNodes gametreeLabelled) `div` 3
     let friendsNumber = enemiesNumber
-    -- let friendsKilled = 0 -- use to keep track of friends killed, that'll then be used in score calculation
 
     --here we shoudl traverse the tree to define the lists
     let enemyZippers = createEnemyZippers gametreeLabelled
@@ -77,7 +77,7 @@ repl = do
 
     --binzipper to move around the tree
     let binzip = (Hole, gametreeLabelled)
-    let startState = GameState {binzip = binzip, enZips = enemyZippers, frZips = friendZippers, enRem = enemiesNumber, frRem = friendsNumber, turn = 0, hp = 5, vision = 1, freeze = True}
+    let startState = GameState {binzip = binzip, enZips = enemyZippers, frZips = friendZippers, enRem = enemiesNumber, frRem = friendsNumber, frKill = 0, turn = 0, hp = 5, vision = 1, freeze = True}
 
     putStrLn "You are entering the tree... \nGood Luck!"
 
@@ -87,11 +87,11 @@ repl = do
     go = do
       gameState <- get
       if enRem gameState == 0 
-        then liftIO $ endGame (frRem gameState) (turn gameState)
+        then liftIO $ endGame (frKill gameState) (turn gameState)
       else if hp gameState <= 0
         then do 
           liftIO $ putStr ("You stayed close to an enemy too long. He kills you")
-          liftIO $ endGame (frRem gameState) (turn gameState)
+          liftIO $ endGame (frKill gameState) (turn gameState)
       else
           do
           
@@ -211,7 +211,7 @@ repl = do
                     liftIO $ putStrLn "Branch cut off!"
                     liftIO $ putStrLn ("Killed " ++ (show (fst upd)) ++ " enemies")
                     liftIO $ putStrLn ("and " ++ (show (snd upd)) ++ " friends")
-                    modify (\s -> s {binzip = newZip, enZips = newEnZips, frZips = newFrZips, enRem = enRem gameState - fst upd, frRem = frRem gameState - snd upd})
+                    modify (\s -> s {binzip = newZip, enZips = newEnZips, frZips = newFrZips, enRem = enRem gameState - fst upd, frRem = frRem gameState - snd upd, frKill = frKill gameState + snd upd})
                     go
 
              --do some edge cases here, not super important
