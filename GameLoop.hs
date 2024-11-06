@@ -16,6 +16,7 @@ data GameState = GameState
    enRem :: Int,
    frRem :: Int,
    frKill :: Int,
+   pos :: Int, -- keeps track of the level the player is at in the tree
    turn :: Int,
    hp :: Int,
    vision :: Int,
@@ -51,7 +52,7 @@ endGame friendsKilled turns = do
 
 repl :: IO ()
 repl = do
-    putStrLn "Welcome!" -- add "do you know how to play? yes -> continue, no -> provide information"
+    putStrLn "Welcome!" -- TO DO "do you know how to play? yes -> continue, no -> provide information"
     putStrLn "Choose maximum tree depth. Between 3 and 6 recommended for a fun game :).\n"
 
     input <- getLine
@@ -77,7 +78,7 @@ repl = do
 
     --binzipper to move around the tree
     let binzip = (Hole, gametreeLabelled)
-    let startState = GameState {binzip = binzip, enZips = enemyZippers, frZips = friendZippers, enRem = enemiesNumber, frRem = friendsNumber, frKill = 0, turn = 0, hp = 5, vision = 1, freeze = True}
+    let startState = GameState {binzip = binzip, enZips = enemyZippers, frZips = friendZippers, enRem = enemiesNumber, frRem = friendsNumber, frKill = 0, pos = 0, turn = 0, hp = 5, vision = 1, freeze = True}
 
     putStrLn "You are entering the tree... \nGood Luck!"
 
@@ -110,7 +111,8 @@ repl = do
 
           --print turn information at the beginning
           liftIO $ putStr ("--- Turn " ++ (show ((turn gameState)+1)) ++ " ---\n")
-          liftIO $ putStr (drawBinZipPretty (binzip gameState))
+          -- Check the level in the tree: liftIO $ putStr ("--- Level in tree " ++ (show ((pos gameState))) ++ " ---\n")
+          liftIO $ putStr (drawBinZipPretty (pos gameState) (vision gameState) (binzip gameState))
           
           --get player input
           line <- liftIO getLine
@@ -127,7 +129,7 @@ repl = do
                 case bz of
                   (c,Bl l t1 t2) -> do
                     let newZip = (B0 l c t2,t1)
-                    modify (\s -> s {binzip = newZip})
+                    modify (\s -> s {binzip = newZip, pos = pos s + 1})
                     go
                   (c,Ll _) -> do
                     liftIO $ putStrLn "You cannot climb any further."
@@ -137,7 +139,7 @@ repl = do
                 case bz of
                   (c,Bl l t1 t2) -> do
                     let newZip = (B1 l t1 c,t2)
-                    modify (\s -> s {binzip = newZip})
+                    modify (\s -> s {binzip = newZip, pos = pos s + 1})
                     go
                   (c,Ll _) -> do
                     liftIO $ putStrLn "You cannot climb any further."
@@ -147,11 +149,11 @@ repl = do
                 case bz of
                   (B0 l c t2,t) -> do
                     let newZip = (c,Bl l t t2)
-                    modify (\s -> s {binzip = newZip})
+                    modify (\s -> s {binzip = newZip, pos = pos s - 1})
                     go    
                   (B1 l t1 c,t) -> do
                     let newZip = (c,Bl l t1 t) 
-                    modify (\s -> s {binzip = newZip})
+                    modify (\s -> s {binzip = newZip, pos = pos s - 1})
                     go
 
                   (Hole,t) -> do                    
