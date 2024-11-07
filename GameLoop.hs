@@ -40,7 +40,7 @@ gameSetup treeDepth = do
 --for now the score is proportional to friends remaining but that shouldnt be the case - it should be inversely prop to friends killed
 endGame :: Int -> Int -> IO ()
 endGame friendsKilled turns = do
-  let score = fromIntegral 100 / fromIntegral (if friendsKilled > 0 then friendsKilled * turns else turns)
+  let score = if friendsKilled > 0 then (fromIntegral friendsKilled) * (fromIntegral turns) else (fromIntegral turns)
   putStrLn ("Well played! You finished the game with a score of " ++ (show score))
   putStrLn ("Type yes if you want to play again!")
   line <- getLine
