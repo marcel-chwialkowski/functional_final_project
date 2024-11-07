@@ -53,21 +53,34 @@ endGame friendsKilled turns = do
 repl :: IO ()
 repl = do
     putStrLn "Welcome!" -- TO DO "do you know how to play? yes -> continue, no -> provide information"
-    putStrLn "Choose maximum tree depth. Between 3 and 6 recommended for a fun game :).\n"
-
+    putStrLn "Shall I tell you how to play?"
+    inst <- getLine
+    case parseInput parseCmd inst of 
+      Just Continue -> do 
+        putStrLn "\nYou are in a tree surrounded by both friends and enemies. You and your friends are on team 1, your enemies are on team 2.\n"
+        putStrLn "Gameplay: To navigate through the tree, you can do the following:"
+        putStrLn "\"go down\" to go down one step towards the root" 
+        putStrLn "\"go right\" to go one step up the right branch"
+        putStrLn "\"go left\" to go one step up the left branch" 
+        putStrLn "You can also choose to stay at a given node and perform one of the following moves:"
+        putStrLn "\"kill\" to kill whoever is at the current node" 
+        putStrLn "\"cut off\" to cut off the part of the tree extending from that branch" 
+        putStrLn "\"meditate\" to do nothing but stay at the current node for a turn\n" 
+        putStrLn "Powerup: By default, you can see the tree up to the depth of your position as well as your immediate neighbors when you choose to go left or right."
+        putStrLn "If you meditate by a friend, they can augment your vision, allowing you to see another level deeper into the tree."
+        putStrLn "However if you meditate by an enemy, they can kill you!\n"
+        putStrLn "Scoring: The goal is to kill all your enemies while saving as many friends as possible."
+        putStrLn "Your final score is calculated based on the number of moves you make and the number of friends you kill, so try to keep both of these numbers as low as possible.\n\n"
+        putStrLn "Choose maximum tree depth. Between 3 and 6 recommended for a fun game :).\n"
+      otherwise -> do
+        putStrLn "Choose maximum tree depth. Between 3 and 6 recommended for a fun game :).\n"
+        
     input <- getLine
     let treeDepth = read input
     gametreeLabelled <- gameSetup treeDepth
     
     putStrLn "You are entering the tree on team 1." 
-    putStrLn "You can move through the tree in the following ways:"
-    putStrLn "\"go down\" to go down one step towards the root" 
-    putStrLn "\"go right\" to go one step up the right branch"
-    putStrLn "\"go left\" to go one step up the left branch" 
-    putStrLn "\"kill\" to kill whoever is at the current node" 
-    putStrLn "\"cut off\" to cut off part of the tree extending from that branch" 
-    putStrLn "\"meditate\" to stay at the current node for a turn" 
-    putStrLn "All of these commands count as moves, so try to minimize them. Kill all your enemies (team 2) with the least amount of moves possible... \nGood Luck!"
+    putStrLn "Kill all your enemies (team 2) with the least amount of moves possible... \nGood Luck!"
 
     let enemiesNumber = (countNodes gametreeLabelled) `div` 3
     let friendsNumber = enemiesNumber
@@ -79,8 +92,6 @@ repl = do
     --binzipper to move around the tree
     let binzip = (Hole, gametreeLabelled)
     let startState = GameState {binzip = binzip, enZips = enemyZippers, frZips = friendZippers, enRem = enemiesNumber, frRem = friendsNumber, frKill = 0, pos = 0, turn = 0, hp = 5, vision = 1, freeze = True}
-
-    putStrLn "You are entering the tree... \nGood Luck!"
 
     evalStateT go startState
     where 
