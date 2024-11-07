@@ -451,7 +451,7 @@ drawBinZipPretty = drawVerticalTree . treeFromBinZip
 treeFromBinNew :: Show a => Int -> LabBin a -> Tree String
 treeFromBinNew p (Ll x)     = Node (show x) []
 treeFromBinNew p (Bl x t1 t2) 
-    | p > 1 = Node (show x) [treeFromBinNew (p - 1) t1,treeFromBinNew (p - 1) t2]
+    | p > 2 = Node (show x) [treeFromBinNew (p - 1) t1,treeFromBinNew (p - 1) t2]
     | otherwise = Node (show x) []
 
 -- v ensures we print based on the player's vision 

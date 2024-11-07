@@ -59,9 +59,9 @@ repl = do
       Just Continue -> do 
         putStrLn "\nYou are in a tree surrounded by both friends and enemies. You and your friends are on team 1, your enemies are on team 2.\n"
         putStrLn "Gameplay: To navigate through the tree, you can do the following:"
-        putStrLn "\"go down\" to go down one step towards the root" 
-        putStrLn "\"go right\" to go one step up the right branch"
-        putStrLn "\"go left\" to go one step up the left branch" 
+        putStrLn "\"go up\" to go up one step towards the root" 
+        putStrLn "\"go right\" to go one step down the right branch"
+        putStrLn "\"go left\" to go one step down the left branch" 
         putStrLn "You can also choose to stay at a given node and perform one of the following moves:"
         putStrLn "\"kill\" to kill whoever is at the current node" 
         putStrLn "\"cut off\" to cut off the part of the tree extending from that branch" 
