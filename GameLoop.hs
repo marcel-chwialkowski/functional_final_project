@@ -123,7 +123,7 @@ repl = do
           --print turn information at the beginning
           liftIO $ putStr ("--- Turn " ++ (show ((turn gameState)+1)) ++ " ---\n")
           -- Check the level in the tree: liftIO $ putStr ("--- Level in tree " ++ (show ((pos gameState))) ++ " ---\n")
-          liftIO $ putStr (drawBinZipPretty (pos gameState) (vision gameState) (binzip gameState))
+          liftIO $ putStr (drawBinZipPrettyNew (pos gameState) (vision gameState) (binzip gameState))
           
           --get player input
           line <- liftIO getLine
