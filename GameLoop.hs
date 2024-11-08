@@ -38,10 +38,12 @@ gameSetup treeDepth = do
     return gametreeLabelled
 
 --for now the score is proportional to friends remaining but that shouldnt be the case - it should be inversely prop to friends killed
-endGame :: Int -> Int -> IO ()
-endGame friendsKilled turns = do
+endGame :: Show a => Int -> Int -> BinZip a -> IO ()
+endGame friendsKilled turns zip = do
   let score = if friendsKilled > 0 then (fromIntegral friendsKilled) * (fromIntegral turns) else (fromIntegral turns)
   putStrLn ("Well played! You finished the game with a score of " ++ (show score))
+  putStrLn ("Final tree:")
+  putStrLn (drawBinZipPretty zip)
   putStrLn ("Type yes if you want to play again!")
   line <- getLine
   case parseInput parseCmd line of 
@@ -99,11 +101,11 @@ repl = do
     go = do
       gameState <- get
       if enRem gameState == 0 
-        then liftIO $ endGame (frKill gameState) (turn gameState)
+        then liftIO $ endGame (frKill gameState) (turn gameState) (binzip gameState)
       else if hp gameState <= 0
         then do 
           liftIO $ putStr ("You stayed close to an enemy too long. He kills you")
-          liftIO $ endGame (frKill gameState) (turn gameState)
+          liftIO $ endGame (frKill gameState) (turn gameState) (binzip gameState)
       else
           do
           
