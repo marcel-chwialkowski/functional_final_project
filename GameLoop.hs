@@ -15,6 +15,8 @@ data GameState = GameState
    frZips :: [BinZip Int],
    enRem :: Int,
    frRem :: Int,
+   frKill :: Int,
+   pos :: Int, -- keeps track of the level the player is at in the tree
    turn :: Int,
    hp :: Int,
    vision :: Int,
@@ -36,10 +38,12 @@ gameSetup treeDepth = do
     return gametreeLabelled
 
 --for now the score is proportional to friends remaining but that shouldnt be the case - it should be inversely prop to friends killed
-endGame :: Int -> Int -> IO ()
-endGame turns friends = do
-  let score = fromIntegral friends / fromIntegral turns
+endGame :: Show a => Int -> Int -> BinZip a -> IO ()
+endGame friendsKilled turns zip = do
+  let score = if friendsKilled > 0 then (fromIntegral friendsKilled) * (fromIntegral turns) else (fromIntegral turns)
   putStrLn ("Well played! You finished the game with a score of " ++ (show score))
+  putStrLn ("Final tree:")
+  putStrLn (drawBinZipPretty zip)
   putStrLn ("Type yes if you want to play again!")
   line <- getLine
   case parseInput parseCmd line of 
@@ -50,18 +54,38 @@ endGame turns friends = do
 
 repl :: IO ()
 repl = do
-    putStrLn "Welcome!" -- add "do you know how to play? yes -> continue, no -> provide information"
-    putStrLn "Choose maximum tree depth. Between 3 and 6 recommended for a fun game :).\n"
-
+    putStrLn "Welcome!" -- TO DO "do you know how to play? yes -> continue, no -> provide information"
+    putStrLn "Shall I tell you how to play?"
+    inst <- getLine
+    case parseInput parseCmd inst of 
+      Just Continue -> do 
+        putStrLn "\nYou are in a tree surrounded by both friends and enemies. You and your friends are on team 1, your enemies are on team 2.\n"
+        putStrLn "Gameplay: To navigate through the tree, you can do the following:"
+        putStrLn "\"go up\" to go up one step towards the root" 
+        putStrLn "\"go right\" to go one step down the right branch"
+        putStrLn "\"go left\" to go one step down the left branch" 
+        putStrLn "You can also choose to stay at a given node and perform one of the following moves:"
+        putStrLn "\"kill\" to kill whoever is at the current node" 
+        putStrLn "\"cut off\" to cut off the part of the tree extending from that branch" 
+        putStrLn "\"meditate\" to do nothing but stay at the current node for a turn\n" 
+        putStrLn "Powerup: By default, you can see the tree up to the depth of your position as well as your immediate neighbors when you choose to go left or right."
+        putStrLn "If you meditate by a friend, they can augment your vision, allowing you to see another level deeper into the tree."
+        putStrLn "However if you meditate by an enemy, they can kill you!\n"
+        putStrLn "Scoring: The goal is to kill all your enemies while saving as many friends as possible."
+        putStrLn "Your final score is calculated based on the number of moves you make and the number of friends you kill, so try to keep both of these numbers as low as possible.\n\n"
+        putStrLn "Choose maximum tree depth. Between 3 and 6 recommended for a fun game :).\n"
+      otherwise -> do
+        putStrLn "Choose maximum tree depth. Between 3 and 6 recommended for a fun game :).\n"
+        
     input <- getLine
     let treeDepth = read input
     gametreeLabelled <- gameSetup treeDepth
     
-    putStrLn "You are entering the tree and on team 1. You can move through the tree in the following ways:\n \"go down\" to go down one step towards the root\n \"go right\" to go one step up the right branch\n \"go left\" to go one step up the left branch\n \"kill\" to kill whoever is at the current node\n \"cut off\" to cut off part of the tree extending from that branch\nAll of these commands count as moves, so try to minimize them. Kill all your enemies (team 2) with the least amount of moves possible... \nGood Luck!"
+    putStrLn "You are entering the tree on team 1." 
+    putStrLn "Kill all your enemies (team 2) with the least amount of moves possible... \nGood Luck!"
 
     let enemiesNumber = (countNodes gametreeLabelled) `div` 3
     let friendsNumber = enemiesNumber
-    let friendsKilled = 0 -- use to keep track of friends killed, that'll then be used in score calculation
 
     --here we shoudl traverse the tree to define the lists
     let enemyZippers = createEnemyZippers gametreeLabelled
@@ -69,9 +93,7 @@ repl = do
 
     --binzipper to move around the tree
     let binzip = (Hole, gametreeLabelled)
-    let startState = GameState {binzip = binzip, enZips = enemyZippers, frZips = friendZippers, enRem = enemiesNumber, frRem = friendsNumber, turn = 0, hp = 5, vision = 1, freeze = True}
-
-    putStrLn "You are entering the tree... \nGood Luck!"
+    let startState = GameState {binzip = binzip, enZips = enemyZippers, frZips = friendZippers, enRem = enemiesNumber, frRem = friendsNumber, frKill = 0, pos = 0, turn = 0, hp = 5, vision = 1, freeze = True}
 
     evalStateT go startState
     where 
@@ -79,11 +101,11 @@ repl = do
     go = do
       gameState <- get
       if enRem gameState == 0 
-        then liftIO $ endGame (frRem gameState) (turn gameState)
+        then liftIO $ endGame (frKill gameState) (turn gameState) (binzip gameState)
       else if hp gameState <= 0
         then do 
           liftIO $ putStr ("You stayed close to an enemy too long. He kills you")
-          liftIO $ endGame (frRem gameState) (turn gameState)
+          liftIO $ endGame (frKill gameState) (turn gameState) (binzip gameState)
       else
           do
           
@@ -102,7 +124,8 @@ repl = do
 
           --print turn information at the beginning
           liftIO $ putStr ("--- Turn " ++ (show ((turn gameState)+1)) ++ " ---\n")
-          liftIO $ putStr (drawBinZipPretty (binzip gameState))
+          -- Check the level in the tree: liftIO $ putStr ("--- Level in tree " ++ (show ((pos gameState))) ++ " ---\n")
+          liftIO $ putStr (drawBinZipPrettyNew (pos gameState) (vision gameState) (binzip gameState))
           
           --get player input
           line <- liftIO getLine
@@ -119,7 +142,7 @@ repl = do
                 case bz of
                   (c,Bl l t1 t2) -> do
                     let newZip = (B0 l c t2,t1)
-                    modify (\s -> s {binzip = newZip})
+                    modify (\s -> s {binzip = newZip, pos = pos s + 1})
                     go
                   (c,Ll _) -> do
                     liftIO $ putStrLn "You cannot climb any further."
@@ -129,7 +152,7 @@ repl = do
                 case bz of
                   (c,Bl l t1 t2) -> do
                     let newZip = (B1 l t1 c,t2)
-                    modify (\s -> s {binzip = newZip})
+                    modify (\s -> s {binzip = newZip, pos = pos s + 1})
                     go
                   (c,Ll _) -> do
                     liftIO $ putStrLn "You cannot climb any further."
@@ -139,11 +162,11 @@ repl = do
                 case bz of
                   (B0 l c t2,t) -> do
                     let newZip = (c,Bl l t t2)
-                    modify (\s -> s {binzip = newZip})
+                    modify (\s -> s {binzip = newZip, pos = pos s - 1})
                     go    
                   (B1 l t1 c,t) -> do
                     let newZip = (c,Bl l t1 t) 
-                    modify (\s -> s {binzip = newZip})
+                    modify (\s -> s {binzip = newZip, pos = pos s - 1})
                     go
 
                   (Hole,t) -> do                    
@@ -203,7 +226,7 @@ repl = do
                     liftIO $ putStrLn "Branch cut off!"
                     liftIO $ putStrLn ("Killed " ++ (show (fst upd)) ++ " enemies")
                     liftIO $ putStrLn ("and " ++ (show (snd upd)) ++ " friends")
-                    modify (\s -> s {binzip = newZip, enZips = newEnZips, frZips = newFrZips, enRem = enRem gameState - fst upd, frRem = frRem gameState - snd upd})
+                    modify (\s -> s {binzip = newZip, enZips = newEnZips, frZips = newFrZips, enRem = enRem gameState - fst upd, frRem = frRem gameState - snd upd, frKill = frKill gameState + snd upd})
                     go
 
              --do some edge cases here, not super important

@@ -417,6 +417,8 @@ moveGroup g1 g2 player id n =
         moveGroup (first res) (second res) (third res) id (n - 1)
 
 --printing routines
+
+-- original functions
 treeFromBin :: Show a => LabBin a -> Tree String
 treeFromBin (Ll x)     = Node (show x) []
 treeFromBin (Bl x t1 t2) = Node (show x) [treeFromBin t1,treeFromBin t2]
@@ -443,3 +445,40 @@ drawBinPretty = drawVerticalTree . treeFromBin
 
 drawBinZipPretty :: Show a => BinZip a -> String
 drawBinZipPretty = drawVerticalTree . treeFromBinZip
+-------------
+
+-- p ensures we only print the number levels visited by the player 
+treeFromBinNew :: Show a => Int -> LabBin a -> Tree String
+treeFromBinNew p (Ll x)     = Node (show x) []
+treeFromBinNew p (Bl x t1 t2) 
+    | p > 2 = Node (show x) [treeFromBinNew (p - 1) t1,treeFromBinNew (p - 1) t2]
+    | otherwise = Node (show x) []
+
+-- v ensures we print based on the player's vision 
+treeFromBinShowVis :: Show a => Int -> LabBin a -> Tree String
+treeFromBinShowVis v (Ll x)     = Node (show x) []
+treeFromBinShowVis v (Bl x t1 t2) 
+    | v > 0 = Node (show x) [treeFromBinShowVis (v - 1) t1,treeFromBinShowVis (v - 1) t2]
+    | otherwise = Node (show x) []
+
+-- third function, takes tree nodes in BinCxt (more info about each node) form to turn them into tree strings
+-- p ensures we only print the number levels visited by the player 
+treeCxtFromBinCxtNew :: Show a => Int -> BinCxt a -> Tree String -> Tree String
+treeCxtFromBinCxtNew p Hole      t = t
+treeCxtFromBinCxtNew p (B0 x c t2) t  
+    | p > 0 = treeCxtFromBinCxtNew (p - 1) c (Node (show x) [t, treeFromBinNew (p - 1) t2])
+    | otherwise = Node (show x) [] -- t
+treeCxtFromBinCxtNew p (B1 x t1 c) t
+    | p > 0 = treeCxtFromBinCxtNew (p - 1) c (Node (show x) [treeFromBinNew (p - 1) t1, t])
+    | otherwise = Node (show x) [] -- t
+
+-- second function, takes a binary tree zipper to convert into a tree string
+treeFromBinZipNew :: Show a => Int -> Int -> BinZip a -> Tree String -- param for vision, then use to decide how many levels of neighbors visible
+treeFromBinZipNew p v (c,t) = treeCxtFromBinCxtNew p c (t'{rootLabel=rootLabel t' ++ marker})
+  where
+    t' = treeFromBinShowVis v t
+    marker = "@ <--you"
+
+-- first function, takes in a tree to be converted to a string to print
+drawBinZipPrettyNew :: Show a => Int -> Int -> BinZip a -> String -- param for vision, pass to treeFromBinZip
+drawBinZipPrettyNew p v = drawVerticalTree . (treeFromBinZipNew p v)
