@@ -28,6 +28,8 @@ data GameState = GameState
    frZips :: [BinZip Int],
    enRem :: Int,
    frRem :: Int,
+   frKill :: Int,
+   pos :: Int, 
    turn :: Int,
    hp :: Int,
    vision :: Int,
