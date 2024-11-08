@@ -38,10 +38,12 @@ gameSetup treeDepth = do
     return gametreeLabelled
 
 --for now the score is proportional to friends remaining but that shouldnt be the case - it should be inversely prop to friends killed
-endGame :: Show a => Int -> Int -> BinZip a -> IO ()
-endGame friendsKilled turns zip = do
-  let score = if friendsKilled > 0 then (fromIntegral friendsKilled) * (fromIntegral turns) else (fromIntegral turns)
-  putStrLn ("Well played! You finished the game with a score of " ++ (show score))
+endGame :: Show a => Int -> Int -> Int -> BinZip a -> IO ()
+endGame friendsKilled turns hp zip = do
+  if hp <= 0 then putStrLn ("You died! You finished the game with a score of 0")
+  else do
+    let score = if friendsKilled > 0 then (fromIntegral friendsKilled) * (fromIntegral turns) else (fromIntegral turns)
+    putStrLn ("Well played! You finished the game with a score of " ++ (show score))
   putStrLn ("Final tree:")
   putStrLn (drawBinZipPretty zip)
   putStrLn ("Type yes if you want to play again!")
@@ -59,6 +61,7 @@ repl = do
     inst <- getLine
     case parseInput parseCmd inst of 
       Just Continue -> do 
+
         putStrLn "\nYou are in a tree surrounded by both friends and enemies. You and your friends are on team 1, your enemies are on team 2.\n"
         putStrLn "Gameplay: To navigate through the tree, you can do the following:"
         putStrLn "\"go up\" to go up one step towards the root" 
@@ -101,11 +104,11 @@ repl = do
     go = do
       gameState <- get
       if enRem gameState == 0 
-        then liftIO $ endGame (frKill gameState) (turn gameState) (binzip gameState)
+        then liftIO $ endGame (frKill gameState) (turn gameState) (hp gameState) (binzip gameState) 
       else if hp gameState <= 0
         then do 
           liftIO $ putStr ("You stayed close to an enemy too long. He kills you")
-          liftIO $ endGame (frKill gameState) (turn gameState) (binzip gameState)
+          liftIO $ endGame (frKill gameState) (turn gameState) (hp gameState) (binzip gameState)
       else
           do
           
