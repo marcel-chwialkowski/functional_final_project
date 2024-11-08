@@ -66,6 +66,9 @@ By default, the player's vision is 1, which allows them to view immediately to t
 When their vision is augmented by meditating by a friend, they can view a level deeper into the tree. 
 The whole final tree is displayed at the end of the game. 
 
+If needed, the vision can be adjusted to print the whole tree throughout the game (this gives an effect of the game having an actual screen, due to the way how the terminal prints stuff.)
+This can be done by commenting line 131 in GameLoop.hs and uncommenting line 132.
+
 ### Parser.hs
 
 Just a slightly extended version of the parser for *Binary Tree World.*
