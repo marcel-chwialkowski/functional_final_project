@@ -13,13 +13,13 @@ The game ends when you die or the all enemies die.
 
 You may need to expose some of the packages for the imported libraries to work. \
 `> :set -package containers`\
-`> :set -package transformers`\
+`> :set -package transformers`
 
 Load GameLoop.hs into ghci:\
-`> :load GameLoop.hs`\
+`> :load GameLoop.hs`
 
 Once loaded, the repl function starts the game:\
-`> repl`\
+`> repl`
 
 ## Files
 
