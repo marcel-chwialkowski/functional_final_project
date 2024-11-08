@@ -11,15 +11,8 @@ The game ends when you die or the all enemies die.
 
 ## Running the game
 
-You may need to expose some of the packages for the imported libraries to work. \
-`> :set -package containers`\
-`> :set -package transformers`
-
-Load GameLoop.hs into ghci:\
-`> :load GameLoop.hs`
-
-Once loaded, the repl function starts the game:\
-`> repl`
+The only non-standard library used is pretty-tree. It can be installed via
+cabal install pretty-tree.
 
 ## Files
 
