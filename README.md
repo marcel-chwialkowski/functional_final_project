@@ -9,6 +9,18 @@ We wrote a turn-based game. As a player, you spawn in a binary tree and you are 
 
 The game ends when you die or the all enemies die.
 
+## Running the game
+
+You may need to expose some of the packages for the imported libraries to work. 
+`> :set -package containers`
+`> :set -package transformers`
+
+Load GameLoop.hs into ghci:
+`> :load GameLoop.hs`
+
+Once loaded, the repl function starts the game:
+`> repl`
+
 ## Files
 
 ### Cmd.hs
@@ -55,6 +67,11 @@ Contains most of the 'backend'. Some important functions:
 * createFriendZippers, createEnemyZippers - given tree with labels, extract list of zippers representing friends/enemies' positions.
 * killZipper - given a zipper and a list of zippers, removes a zipper from the list based on equality test with the other argument.
 * moveInd, moveGroup - moves around a list of zipper on the trees, updating all other zippers at the same time. Used for moving friends and enemies.
+
+Also contains the printing routines for the tree. The vision and position parameters control how much of the tree is visible to the player at every turn. 
+By default, the player's vision is 1, which allows them to view immediately to their left and right in the tree. 
+When their vision is augmented by meditating by a friend, they can view a level deeper into the tree. 
+The whole final tree is displayed at the end of the game. 
 
 ### Parser.hs
 
