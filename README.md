@@ -1,5 +1,7 @@
 # Functional programming final projecct
 
+*Note: Some of the code is adapted from the course template of an example project ("Binary Tree World")*
+
 *Authors: Marcel Chwiałkowski, Aditi Sadwelkar*
 
 We wrote a turn-based game. As a player, you spawn in a binary tree and you are tasked with eliminating all your enemies while eliminating as few of your allies as possible. There are 2 ways of eliminating players:
@@ -12,7 +14,7 @@ The game ends when you die or the all enemies die.
 ## Running the game
 
 The only non-standard library used is pretty-tree. It can be installed via
-cabal install pretty-tree.
+*cabal install pretty-tree*.
 
 ## Files
 
